@@ -1,0 +1,161 @@
+	RType Network Protocol
+
+Table of Contents
+
+    1.  Introduction  . . . . . . . . . . . . . . . . . . . . . .
+    2.  TCP . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+      2.1.  Client . . . . . . . . . . . . . . . . . . . . . . . . . .
+        2.1.1.  Struct connectionmessage . . . . . . . . . . . . . . . . . . . .
+        2.1.2.  Enum ConnectionAction . . . . . . . . . . . . . . . . . . . . .
+      2.2.  Server . . . . . . . . . . . . . . . . . . . . . .
+        2.2.1.  Struct ServerRoomsInfo . . . . . . . . . . . . . . . . . . . . .
+        2.2.2.  Struct ServerInRoomInfo . . . . . . . . . . . . . . . . . . . . .
+        2.2.3.  Struct ServerLoadRessourcesInfo . . . . . . . . . . . . . . . . .
+    3.  UDP . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+      3.1.  Client . . . . . . . . . . . . . . . . . . . . . . . . . .
+        3.1.1.  Struct ControllerAction . . . . . . . . . . . . . . . . . . . .
+      3.2.  Server . . . . . . . . . . . . . . . . . . . . . .
+        3.2.1.  Struct ServerInGameInfo . . . . . . . . . . . . . . . . . . . . .
+ 
+1.  Introduction
+
+    This document describe the network protocol used in the "Rtype" project.
+
+2. Tcp
+
+This section Will show the tcp communication between the client and server.
+
+2.1 client
+
+The client sends one structure filled conditionally according to what the enum's value is
+
+2.1.1. Struct ConnectionMessage
+
+The client MUST send this structure when he does anything outside of game.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | act           | ConnectionAction    | enum Info                  |
+ | name          | char[30]            | String name                |
+ | roomNb        | uint32_t            | Room number to join        |
+ | name          | uint32_t            | level of created room      |
+ +---------------+---------------------+----------------------------+
+
+2.1.2 enum ConnectionAction
+
+The client MUST fill hello with his name when connecting.
+
+The client MUST fill room info when using any other member of the enum.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | HELLO         | uint32_t            | give name                  |
+ | CREATE_ROOM   | uint32_t            | create room                |
+ | ENTER_ROOM    | uint32_t            | enters existing room       |
+ | LEAVE_ROOM    | uint32_t            | leaves room                |
+ | READY         | uint32_t            | ready to start game        |
+ | LOADED        | uint32_t            | finished loaded ressources |
+ +---------------+---------------------+----------------------------+
+
+2.2 Server
+
+The server sends a code followed either by a structure or à size followed by a vector of structures.
+
+2.2.1 struct ServerRoomsInfo
+
+The server MUST send "RO" followed by the number of rooms it Will send before sending a vector of this struct.
+
+The server SHOULD send a vector of this struct when a client connects to the server, leaves à room, or à room is changed.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | roomNb        | uint32_t            | room Id                    |
+ | nbPlayer      | uint32_t            | nb of players in room      |
+ | ownerName     | char[30]            | name of room owner         |
+ | lvlNb         | uint32_t            | level number of the room   |
+ +---------------+---------------------+----------------------------+
+
+2.2.2 struct ServerInRoomInfo
+
+The server MUST send "IN" before sending this struct.
+
+The server SHOULD send this struct when à client enters a room or the room is modified.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | playerNb      | uint32_t            | nb of players              |
+ | playersName   | char[4][30]         | names of players           |
+ | ready         | bool[4]             | ready statuses             |
+ | loaded        | bool[4]             | loaded statuses            |
+ | startGame     | bool                | ready to start game        |
+ | joined        | bool                | if player managed to join  |
+ +---------------+---------------------+----------------------------+
+
+2.2.3 struct ressources info
+
+The server MUST send "RE" followed by the number of rooms it Will send before sending a vector of this struct.
+
+The Server SHOULD send this struct to all clients in à room where all clients are ready.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | entityName    | char[30]            | entity name                |
+ | fileName      | char[30]            | file name                  |
+ | type          | AnimationType       | attack / (u/d/r/l) / static|
+ | beginX        | uint32_t            | X coord start              |
+ | beginY        | uint32_t            | Y coord start              |
+ | height        | uint32_t            | height                     |
+ | width         | uint32_t            | width                      |
+ | nbSprite      | uint32_t            | nbSprites in file          |
+ | incX          | uint32_t            | x coords between sprites   |
+ | scale         | bool                | does image scale           |
+ +---------------+---------------------+----------------------------+
+
+ (u/d/r/l) = UP / DOWN / RIGHT / LEFT
+
+3. Udp
+
+All in game communication MUST be made through udp.
+
+3.1 Client
+
+Client sends a struct to inform of its controller input.
+
+3.1.1. Struct controllerinfo
+
+The client SHOULD send this struct at every frame.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | right         | bool                | going right                |
+ | left          | bool                | going left                 |
+ | up            | bool                | going up                   |
+ | down          | bool                | going down                 |
+ | isShooting    | bool                | is player shooting or not  |
+ | id            | uint32_t            | player id                  |
+ +---------------+---------------------+----------------------------+
+
+3.2 Server
+
+The server sends a structure for every sprite shown in the game at every frame.
+
+3.2.1. Struct ingameinfo
+
+The Server SHOULD send this struct as many Times as needed during a frame for every entity to be showed.
+
+ +---------------+---------------------+----------------------------+
+ | Name          | type                | Description                |
+ +---------------+---------------------+----------------------------+
+ | entityId      | uint32_t            | entity id                  |
+ | entityType    | char[30]            | entity type                |
+ | type          | AnimationType       | attack / (u/d/r/l) / static|
+ | posX          | uint32_t            | X coord entity             |
+ | posY          | uint32_t            | Y coord entity             |
+ | loopMode      | uint32_t            | does anim loop             |
+ +---------------+---------------------+----------------------------+
